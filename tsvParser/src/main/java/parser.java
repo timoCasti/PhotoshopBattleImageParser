@@ -464,7 +464,7 @@ public class parser {
                 }
                 try {
                     bimg = ImageIO.read(url);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -475,7 +475,7 @@ public class parser {
                     try {
                         bimg = ImageIO.read(url);
 
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         e.printStackTrace();
                         continue;
                     }
@@ -564,7 +564,7 @@ public class parser {
                         }
                         try {
                             bimg = ImageIO.read(url);
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                             continue;
                         }
