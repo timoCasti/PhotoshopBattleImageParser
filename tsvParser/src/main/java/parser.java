@@ -15,6 +15,9 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 
+import org.nibor.autolink.*;
+
+
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -27,9 +30,16 @@ import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 
 public class parser {
 
+    /**
+     * takes two System Arguments:
+     *  1. the file to be processsed in json format, starting with "RC" for commeents and "RS" for submissions
+     *  2. the path to the geckodriver (https://github.com/mozilla/geckodriver/)
+     */
+
     public static void main(String[] args) throws Exception {
 
         String geckodriverPath = args[1];
+        System.out.println(geckodriverPath);
         System.setProperty("webdriver.gecko.driver", geckodriverPath);
         FirefoxOptions options = new FirefoxOptions();
         options.setHeadless(true);
@@ -127,7 +137,7 @@ public class parser {
      * trims img url remove everything after question mark
      *
      * @param url url to be trimmed
-     * @return
+     * @return trimmed url
      */
     private static String trimUrl(String url) {
 
@@ -154,13 +164,13 @@ public class parser {
         int counter_toplvl = 0;
         int counter_score = 0;
         int counter_imgSize = 0;
-        int counter_multiplImages = 0;
+        int counter_multipleImages = 0;
         int counter_comments = 0;
         int counter_success = 0;
         List<String> bad_body = new ArrayList<>();
         HashMap<Integer, Integer> scoreDistribution = new HashMap<>();
 
-        // Read json file to list
+        // Read json file to list of comment objects
         ObjectMapper mapper = new ObjectMapper();
         comment[] commentList = mapper.readValue(file, comment[].class);
 
@@ -218,29 +228,63 @@ public class parser {
                 continue;
             }
 
-            //check if it is an empty/deletet comment
+            //check if it is an empty/deleted comment
             String bo = comment.getBody();
             if (bo.contains("[removed]") || bo.contains("[deleted]")) {
                 continue;
             }
 
             // fix the body string to be readable by the url detector
-            String placeholder;
             int index;
-            while (bo.contains("](")) {
-                index = bo.indexOf("](");
-                placeholder = bo.substring(0, index);
-                placeholder = placeholder.concat("  ");
-                bo = placeholder.concat(bo.substring(index + 1));
-            }
+           // bo= bo.replace("]"," ");
+            bo= bo.replace("["," ");
+            bo= bo.replace("("," ");
+          //  bo= bo.replace(")"," ");
+
 
             //https://github.com/linkedin/URL-Detector
-            UrlDetector parser = new UrlDetector(bo, UrlDetectorOptions.Default);
-            List<Url> urlList = parser.detect();
+            //UrlDetector parser = new UrlDetector(bo, UrlDetectorOptions.Default);
+            //List<Url> urlList = parser.detect();
 
-            if (!(urlList.size() == 1)) { // we only consider comments with only one link
-                bad_body.add(bo);
-                counter_multiplImages++;
+            List<String> urlString=new ArrayList<>();
+            String placeHolder;
+
+            //cast url to String and get rid of duplicates in the list
+            /*
+            for (int i=0; i<urlList.size();i++){
+                placeHolder=urlList.get(i).toString();
+                urlString.add(placeHolder);
+            }
+            */
+
+            // https://github.com/robinst/autolink-java
+            String linkFromlinkExtractor;
+            LinkExtractor linkExtractor = LinkExtractor.builder()
+                    .linkTypes(EnumSet.of(LinkType.URL, LinkType.WWW))
+                    .build();
+            try {
+                Iterable<LinkSpan> links = linkExtractor.extractLinks(bo);
+                LinkSpan linkSpan = links.iterator().next();
+                linkSpan.getType();        // LinkType.URL
+                linkSpan.getBeginIndex();  // 17
+                linkSpan.getEndIndex();    // 32
+                linkFromlinkExtractor = bo.substring(linkSpan.getBeginIndex(), linkSpan.getEndIndex());  // "http://test.com"
+                urlString.add(linkFromlinkExtractor);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+
+            Set<String> set = new LinkedHashSet<>();
+            set.addAll(urlString);
+            urlString.clear();
+            urlString.addAll(set);
+
+
+
+            if (!(urlString.size() == 1)) { // we only consider comments with only one link
+                bad_body.add(bo+" number of urls: " + urlString.size());
+                counter_multipleImages++;
                 continue;
             }
             BufferedImage bimg = null;
@@ -249,7 +293,8 @@ public class parser {
             boolean processedLink = false; //check if a link provides at least one image if not write to unsupported file
 
             //fix the url's
-            String link = String.valueOf(urlList.get(0));
+            //String link = String.valueOf(urlList.get(0));
+            String link= urlString.get(0);
             while (link.startsWith("(") || link.startsWith("[") || link.startsWith(".")) {
                 link = link.substring(1);
             }
@@ -308,7 +353,7 @@ public class parser {
                         continue;
                     }
                     String format = "";
-                    //try to get the format/enging of an image
+                    //try to get the format/ending of an image
                     try {
                         format = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(imgByte));
                         if (format.startsWith("image/")) {
@@ -316,7 +361,6 @@ public class parser {
                         }
                     } catch (Exception e) {
                         format = getFormat(src);
-                        e.printStackTrace();
                     }
                     // to avoid formats which can cause errors
                     if (!format.equals("jpeg") && !format.equals("png") && !format.equals("jpg")) {
@@ -385,7 +429,7 @@ public class parser {
         statisticAndDebug.add(1, "Number of comments parsed:  " + counter_comments);
         statisticAndDebug.add(2, "Number of comments which are not top lvl:   " + counter_toplvl);
         statisticAndDebug.add(3, "Number of comments with score below 20  :  " + counter_score);
-        statisticAndDebug.add(4, "Number of comments with more than one image link:  " + counter_multiplImages);
+        statisticAndDebug.add(4, "Number of comments with more than one image link:  " + counter_multipleImages);
         statisticAndDebug.add(5, "Number of comments with too small images:  " + counter_imgSize);
 
         finalizeOutput(outList, path, statisticAndDebug);
@@ -447,8 +491,8 @@ public class parser {
                 counter_score++;
                 continue;
             }
+            /*
             String ending = getFormat(sUrl);
-
             boolean isImg = ending.contains("png") || ending.contains("jpg") || ending.contains("jpeg");
             if (isImg) {
 
@@ -521,7 +565,8 @@ public class parser {
 
 
             } //url does not directly refer to an image checkout provided url for images with headless Browser
-            else if (!sUrl.equals("")) {
+            else */
+            if (!sUrl.equals("")) {
 
                 //try {
                 try {
@@ -548,7 +593,11 @@ public class parser {
                 String imgDuplicate = "";
                 for (Element element : img) {
                     String src = element.absUrl("src");
-                    if (src.toLowerCase().contains("i.imgur") || src.toLowerCase().contains("pinimg.com") || src.toLowerCase().contains("pbs.twigmg.com") || src.toLowerCase().contains("upload.wikimedia.org") || src.toLowerCase().contains("ytimg.com") || src.toLowerCase().contains("i.reddituploads.com") || src.toLowerCase().contains("puu.sh") || src.toLowerCase().contains("flickr.com") || src.toLowerCase().contains("deviantart.com") || src.toLowerCase().contains("en.wikipedia.org") || src.toLowerCase().contains("i.redd.it")) { //
+
+                    // are not actual post with images but anouncements with examples
+                        if(src.contains("preview.redd")){
+                            continue;
+                        }
 
                         //check for img duplicates, since images on e.g. imgur are present multiple times with different endings
                         if (imgDuplicate.equals(deleteEnding(src))) {
@@ -587,7 +636,7 @@ public class parser {
                             }
                         } catch (Exception e) {
                             format = getFormat(src);
-                            e.printStackTrace();
+
                         }
                         // to avoid formats which can cause errors
                         if (!format.equals("jpeg") && !format.equals("png") && !format.equals("jpg")) {
@@ -606,7 +655,7 @@ public class parser {
                         outList.add(po);
                         processedSubmission = true;
                         counter_success++;
-                    }
+
                 }
 
             } else {//url is empty

@@ -1,3 +1,8 @@
+/**
+ * Defines the outputformat of an photoshop (comment) object which gets parsed to a tsv file
+ */
+
+
 public class photoshop_out {
 
     private String id;

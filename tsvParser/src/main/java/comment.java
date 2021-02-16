@@ -1,3 +1,8 @@
+/**
+ * Defines the comment object the json file is parsed to.
+ */
+
+
 public class comment {
 
     private String author;

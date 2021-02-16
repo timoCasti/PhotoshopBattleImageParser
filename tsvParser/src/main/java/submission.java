@@ -1,3 +1,8 @@
+/**
+ * Defines the submission object the json file is parsed to.
+ */
+
+
 public class submission {
 
     private String author;

@@ -1,3 +1,8 @@
+/**
+ * Defines the outputformat of an orginal (Submission) object which gets parsed to a tsv file
+ */
+
+
 public class original_out {
     private String id;
     private String url;
