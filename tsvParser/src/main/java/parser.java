@@ -91,10 +91,17 @@ public class parser {
      * @return
      */
     private static String deleteEnding(String withEnding) {
-        String[] split = withEnding.split("\\.");
-        int cutSize = withEnding.length() - split[split.length - 1].length();
-        return withEnding.substring(0, cutSize - 1);
-    }
+        try {
+            String[] split = withEnding.split("\\.");
+            int cutSize = withEnding.length() - split[split.length - 1].length();
+            return withEnding.substring(0, cutSize - 1);
+        }
+        catch (Exception e){
+            return withEnding;
+        }
+        }
+
+
 
     /**
      * Writes parsed file to tsv and writes a txt file with the statistics
@@ -572,7 +579,6 @@ public class parser {
                 try {
                     driver.get(sUrl);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     continue;
                 }
                 Thread.sleep(1500); // easiest way to wait till any page is loaded
@@ -582,7 +588,6 @@ public class parser {
                     doc = Jsoup.parse(driver.getPageSource());
 
                 } catch (Exception e) {
-                    e.printStackTrace();
                     continue;
                 }
                 if (doc == null) {
@@ -608,13 +613,11 @@ public class parser {
                         try {
                             url = new URL(src);
                         } catch (Exception e) {
-                            e.printStackTrace();
                             continue;
                         }
                         try {
                             bimg = ImageIO.read(url);
                         } catch (Exception e) {
-                            e.printStackTrace();
                             continue;
                         }
                         if (bimg == null) {
@@ -624,7 +627,6 @@ public class parser {
                         try {
                             imgByte = getConnection(sUrl).execute().bodyAsBytes();
                         } catch (Exception e) {
-                            e.printStackTrace();
                             continue;
                         }
                         src = trimUrl(src);
