@@ -22,6 +22,16 @@ Running the script:
 *python downloader.py*  
 will create two subfolder originals/photoshops which will include all the images presented in the tsv files.
 
+# graphConstructor
+Python script which needs the original/photoshops tsv files in the same directory to construct the different graphs for the paper.
+Two arguments are requiered:
+  - The first one is a 0/1 , for 1 all the images get redownloaded and checked if they still exist, additionally all photoshops without a corresponding original get deleted and vice versa.
+  - The second argument defines wich graph gets constructed:
+          - "wh" for width and height comparison
+          - "derivates" plots the amount of photoshops per original
+          - "size" plots the graph for file size and format (jpg/png)
+          - "domain" plots the graph comparing the domains the images are from.
+
 # Bibtex
 ```
 @article{heller2018psBattles,
