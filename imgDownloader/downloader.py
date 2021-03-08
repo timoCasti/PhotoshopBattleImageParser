@@ -55,7 +55,10 @@ if __name__ == '__main__':
         filepath = "originals/" + row[0] + "." + row[2]  # originals/id.end
         url = row[1]
         hash = row[3]
-        download(url, filepath, hash)
+        try:
+            download(url, filepath, hash)
+        except:
+            print("Failed Download for:"+ row[0])
         counter += 1
         if counter >= percent:
             pc += 1
@@ -85,10 +88,16 @@ if __name__ == '__main__':
     next(read_tsv)
     for row in read_tsv:
         # row=id	original	url	end	hash	filesize	score	author	link	timestamp	width	height
-        filepath = "photoshops/" + row[0] + "." + row[3]  # photoshops/id.end
+        if not os.path.exists("photoshops/"+row[1]):
+            os.mkdir("photoshops/"+row[1])
+
+        filepath = "photoshops/"+row[1]+ "/" + row[0] + "." + row[3]  # photoshops/id.end
         url = row[2]
         hash = row[4]
-        download(url, filepath, hash)
+        try:
+            download(url, filepath, hash)
+        except:
+            print("Failed Download for: "+ row[0])
         counter += 1
         if counter >= percent:
             pc += 1

@@ -260,4 +260,9 @@ dmypy.json
 # profiling data
 .prof
 
+originals.tsv
+photoshops.tsv
+originals/*
+photoshops/*
+
 # End of https://www.toptal.com/developers/gitignore/api/git,python,pycharm

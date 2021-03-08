@@ -12,13 +12,19 @@ from matplotlib.pyplot import show
 
 def checkExistence(url, checksum):
     check = True
-    img_data = requests.get(url).content
-    m = hashlib.sha256()
-    m.update(img_data)
-    hash = m.hexdigest()
 
-    if not hash == checksum:
-        print("hash :  " + hash + "  does not equal checksum from tsv : " + checksum)
+    try:
+        img_data = requests.get(url).content
+        m = hashlib.sha256()
+        m.update(img_data)
+        hashImage = m.hexdigest()
+    except:
+        print(" could not access utl")
+        check = False
+        hashImage = "0"
+
+    if not hashImage == checksum:
+        print("hash :  " + hashImage + "  does not equal checksum from tsv : " + checksum)
         check = False
 
     return check
@@ -49,6 +55,13 @@ if __name__ == '__main__':
     deletedImages = 0
     foundderi = 0
     sizePsChecked = 0
+
+    heightMax=0
+    heightMin=1000000
+    widthMax=0
+    widthMin=1000000
+    sizeOfDataset=0
+    maxDerivates=0
 
     rowPS = 0
     rowOG = 0
@@ -81,6 +94,16 @@ if __name__ == '__main__':
         # width and height in 2 differnt lists
         height.append(int(row[10]))
         width.append(int(row[9]))
+        if int(row[10])>heightMax:
+            heightMax=int(row[10])
+        if int(row[10])<heightMin:
+            heightMin=int(row[10])
+        if int(row[9])>widthMax:
+            widthMax=int(row[9])
+        if int(row[9])<widthMin:
+            widthMin=int(row[9])
+
+
 
         # image size
         if row[1].endswith("gif"):
@@ -88,8 +111,10 @@ if __name__ == '__main__':
 
         if row[2] == "jpeg" or row[2] == "jpg":
             jpg.append(int(row[4]) / 1000000)
+            sizeOfDataset+=int(row[4]) / 1000000
         elif row[2] == "png":
             png.append(int(row[4]) / 1000000)
+            sizeOfDataset += int(row[4]) / 1000000
         else:
             continue
 
@@ -144,6 +169,15 @@ if __name__ == '__main__':
         # width and height in 2 differnt lists
         height.append(int(row[11]))
         width.append(int(row[10]))
+        if int(row[11])>heightMax:
+            heightMax=int(row[11])
+        if int(row[11])<heightMin:
+            heightMin=int(row[11])
+        if int(row[10])>widthMax:
+            widthMax=int(row[10])
+        if int(row[10])<widthMin:
+            widthMin=int(row[10])
+
 
         # image size
         if row[2].endswith("gif"):
@@ -151,12 +185,14 @@ if __name__ == '__main__':
 
         if row[3] == "jpeg" or row[3] == "jpg":
             jpg.append(int(row[5]) / 1000000)
+            sizeOfDataset += int(row[5]) / 1000000
         elif row[3] == "png":
             png.append(int(row[5]) / 1000000)
+            sizeOfDataset += int(row[5]) / 1000000
         else:
             continue
 
-            # domaint (imgur, reddit..)
+            # domain (imgur, reddit..)
 
         if "imgur" in row[2]:
             domain["imgur"] += 1
@@ -210,6 +246,11 @@ if __name__ == '__main__':
     print("Number of images ", rowOG+rowPS)
 
     print("# Deleted Images  : ", deletedImages)
+    print("sizeOfDataset MB: " , sizeOfDataset)
+    print("widthMin-Pixel: ",widthMin)
+    print("widthMax: ",widthMax)
+    print("heightMin: ", heightMin)
+    print("heightMax", heightMax)
 
     # do plotting
 
@@ -237,6 +278,9 @@ if __name__ == '__main__':
         zeroPSlist= list()
         for k,v in c.items():
             adder += v
+            if v>maxDerivates:
+                maxDerivates=v
+
             if v ==0:
                 counterZero+=1
                 zeroPSlist.append(k)
@@ -245,17 +289,18 @@ if __name__ == '__main__':
 
         #print(c.keys())
         print("counterZero", counterZero)
-        print("avg  ", adder/24987)
-        print("avg no zero  ", adder/(24987-counterZero))
+        print("avg  ", adder/rowOG)
+        print("avg no zero  ", adder/(rowOG-counterZero))
+        print("max Derivates : ", maxDerivates)
 
         listComp= set(noOriginalKey)&set(zeroPSlist)
         print("listComp ", listComp)
 
         plotCounter=Counter(numberOfPhotoshops)
         sns.lineplot(y=plotCounter.values(),x=plotCounter.keys(), marker="o", color="black",mfc="red")
-        ax.set_xticks([0, 20, 40, 60])
+        ax.set_xticks([0, 20, 40, 60,80,100,120,140])
         ax.set_yscale("log")
-        ax.set_xticklabels([0, 20, 40, 60])
+        ax.set_xticklabels([0, 20, 40, 60,80,100,120,140])
         ax.set_yticks([1, 5, 10, 50, 100, 500, 1000])
         ax.set_yticklabels([1, 5, 10, 50, 100, 500, 1000])
 
@@ -278,11 +323,11 @@ if __name__ == '__main__':
 
         sns.set_style('darkgrid')
         fig, ax = plt.subplots()
-        keys=["imgur.com", "redd.it", "other"]
-        values=[domain["imgur"],domain["redd.it"],domain["other"]]
+        keys=["imgur.com", "redd.it"]
+        values=[domain["imgur"],domain["redd.it"]]
         sns.barplot(x=keys,y=values,ax=ax,palette="mako")
         ax.set_yscale("log")
         ax.set_yticks([1,10,100,1000,10000,1000000])
-        ax.set_yticklabels([1,10,100,1000,"10.000","1000.000"])
+        ax.set_yticklabels([1,10,100,1000,"10.000","1.000.000"])
         ax.set_ylabel("Count", labelpad=-5)
         show()
