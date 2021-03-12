@@ -1,5 +1,5 @@
 # PhototshopBattleImageParser
-Repository including three different Projects which allow to create and download the [PS-Battles dataset, an image collection for image manipulation detection](https://arxiv.org/abs/1804.04866).
+Repository including four different Projects which allow to create and download the [PS-Battles dataset, an image collection for image manipulation detection](https://arxiv.org/abs/1804.04866).
 
 # psbParser
 The first part is a small java script which filters the Reddit comments and submissions from Pushshift (https://files.pushshift.io/reddit) so that only comments and submissions from the PhotoshopBattle subreddit are kept.
