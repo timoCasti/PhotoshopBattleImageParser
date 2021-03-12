@@ -32,8 +32,8 @@ public class parser {
 
     /**
      * takes two System Arguments:
-     *  1. the file to be processsed in json format, starting with "RC" for commeents and "RS" for submissions
-     *  2. the path to the geckodriver (https://github.com/mozilla/geckodriver/)
+     * 1. the file to be processsed in json format, starting with "RC" for commeents and "RS" for submissions
+     * 2. the path to the geckodriver (https://github.com/mozilla/geckodriver/)
      */
 
     public static void main(String[] args) throws Exception {
@@ -95,12 +95,10 @@ public class parser {
             String[] split = withEnding.split("\\.");
             int cutSize = withEnding.length() - split[split.length - 1].length();
             return withEnding.substring(0, cutSize - 1);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             return withEnding;
         }
-        }
-
+    }
 
 
     /**
@@ -176,6 +174,8 @@ public class parser {
         int counter_success = 0;
         List<String> bad_body = new ArrayList<>();
         HashMap<Integer, Integer> scoreDistribution = new HashMap<>();
+        HashMap<Integer, Integer> scoreDistributionOld = new HashMap<>();
+
 
         // Read json file to list of comment objects
         ObjectMapper mapper = new ObjectMapper();
@@ -191,6 +191,15 @@ public class parser {
             if (!prefix.equals("t3")) {
                 counter_toplvl++;
                 continue;
+            }
+
+            int scoreOld = Integer.parseInt(comment.getScore());
+            // get ScoreDistribution for debugging
+            if (scoreDistributionOld.containsKey(scoreOld)) {
+                int oldValue = scoreDistributionOld.get(scoreOld);
+                scoreDistributionOld.put(scoreOld, oldValue + 1);
+            } else {
+                scoreDistributionOld.put(scoreOld, 1);
             }
 
             // get latest score and the title from reddit
@@ -243,26 +252,19 @@ public class parser {
 
             // fix the body string to be readable by the url detector
             int index;
-           // bo= bo.replace("]"," ");
-            bo= bo.replace("["," ");
-            bo= bo.replace("("," ");
-          //  bo= bo.replace(")"," ");
+            // bo= bo.replace("]"," ");
+            bo = bo.replace("[", " ");
+            bo = bo.replace("(", " ");
+            //  bo= bo.replace(")"," ");
 
 
             //https://github.com/linkedin/URL-Detector
             //UrlDetector parser = new UrlDetector(bo, UrlDetectorOptions.Default);
             //List<Url> urlList = parser.detect();
 
-            List<String> urlString=new ArrayList<>();
+            List<String> urlString = new ArrayList<>();
             String placeHolder;
 
-            //cast url to String and get rid of duplicates in the list
-            /*
-            for (int i=0; i<urlList.size();i++){
-                placeHolder=urlList.get(i).toString();
-                urlString.add(placeHolder);
-            }
-            */
 
             // https://github.com/robinst/autolink-java
             String linkFromlinkExtractor;
@@ -288,9 +290,8 @@ public class parser {
             urlString.addAll(set);
 
 
-
             if (!(urlString.size() == 1)) { // we only consider comments with only one link
-                bad_body.add(bo+" number of urls: " + urlString.size());
+                bad_body.add(bo + " number of urls: " + urlString.size());
                 counter_multipleImages++;
                 continue;
             }
@@ -301,7 +302,7 @@ public class parser {
 
             //fix the url's
             //String link = String.valueOf(urlList.get(0));
-            String link= urlString.get(0);
+            String link = urlString.get(0);
             while (link.startsWith("(") || link.startsWith("[") || link.startsWith(".")) {
                 link = link.substring(1);
             }
@@ -397,9 +398,12 @@ public class parser {
             }
         }
 
+        /*
+        SCORE-DISTRIBBUTION old and new for analytics only
+         */
         // treemap to get ordrerd map
         TreeMap<Integer, Integer> tm = new TreeMap<>(scoreDistribution);
-        File scoreDis = new File("scoreDis");
+        File scoreDis = new File(deleteEnding(commentOrSubmission) + "_scoreDis");
         BufferedWriter bf = null;
 
         // write score distribution
@@ -425,6 +429,35 @@ public class parser {
                 e.printStackTrace();
             }
         }
+        // treemap to get ordrerd map OLD-SCORES
+        TreeMap<Integer, Integer> tmOld = new TreeMap<>(scoreDistributionOld);
+        File scoreDisOLD = new File(deleteEnding(commentOrSubmission) + "_scoreDisOld");
+        BufferedWriter bfOld = null;
+
+        // write score distribution
+        try {
+            //create new BufferedWriter for the output file
+            bfOld = new BufferedWriter(new FileWriter(scoreDisOLD));
+
+            //iterate map entries
+            for (Map.Entry<Integer, Integer> entry : tmOld.entrySet()) {
+                //put key and value separated by a colon
+                bfOld.write(entry.getKey() + ":" + entry.getValue());
+                bfOld.newLine();
+            }
+            bfOld.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                //always close the writer
+                bfOld.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         FileWriter writer = new FileWriter(deleteEnding(path) + "_body.txt");
         for (String str : bad_body) {
             writer.write(str + System.lineSeparator());
@@ -465,6 +498,8 @@ public class parser {
         ObjectMapper mapper = new ObjectMapper();
         submission[] submissionList = mapper.readValue(f, submission[].class);
         int emptyURL = 0;
+        HashMap<Integer, Integer> scoreDistribution = new HashMap<>();
+        HashMap<Integer, Integer> scoreDistributionOld = new HashMap<>();
 
 
         BufferedImage bimg = null;
@@ -477,6 +512,15 @@ public class parser {
 
             String linkToScore = "https://reddit.com/r/photoshopbattles/comments/" + sub.getId() + ".json?depth=1";
             String score = null;
+
+            int scoreOld = Integer.parseInt(sub.getScore());
+            // get ScoreDistribution for debugging
+            if (scoreDistributionOld.containsKey(scoreOld)) {
+                int oldValue = scoreDistributionOld.get(scoreOld);
+                scoreDistributionOld.put(scoreOld, oldValue + 1);
+            } else {
+                scoreDistributionOld.put(scoreOld, 1);
+            }
 
             try {
                 String js = Jsoup.connect(linkToScore).ignoreContentType(true).execute().body();
@@ -498,81 +542,7 @@ public class parser {
                 counter_score++;
                 continue;
             }
-            /*
-            String ending = getFormat(sUrl);
-            boolean isImg = ending.contains("png") || ending.contains("jpg") || ending.contains("jpeg");
-            if (isImg) {
 
-                URL url = null;
-                try {
-                    url = new URL(sUrl);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                if (url == null) {
-                    System.out.println("no url");
-                    continue;
-                }
-                try {
-                    bimg = ImageIO.read(url);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                //it might be https instead of http
-                if (bimg == null && sUrl.startsWith("http:")) {
-                    String nUrl = "https" + sUrl.substring(4);
-                    url = new URL(nUrl);
-                    try {
-                        bimg = ImageIO.read(url);
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        continue;
-                    }
-
-                }
-                if (bimg == null) {
-                    System.out.println("failed to open url:  " + sUrl);
-                    continue;
-                }
-
-                byte[] imgByte = null;
-                try {
-                    imgByte = getConnection(sUrl).execute().bodyAsBytes();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    continue;
-                }
-                String format = "";
-                try {
-                    format = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(imgByte));
-                    if (format.startsWith("image/")) {
-                        format = format.substring(6);
-                    }
-                } catch (Exception e) {
-                    format = getFormat(sUrl);
-                    e.printStackTrace();
-                }
-                // to avoid formats which can cause errors
-                if (!format.equals("jpeg") && !format.equals("png") && !format.equals("jpg")) {
-                    format = "jpeg";
-                }
-
-                if (imgByte.length < 10000 || bimg.getHeight() < 300 || bimg.getWidth() < 300) {  //check for min size of 10kB for and image
-                    counter_imgSize++;
-                    continue;
-                }
-
-
-                original_out po = new original_out(sub.getId(), sUrl, format, sha256Hex(imgByte), String.valueOf(imgByte.length), sub.getScore(), sub.getAuthor(), linkBuilder, sub.getCreated_utc(), bimg.getWidth(), bimg.getHeight());
-                outList.add(po);
-                processedSubmission = true;
-                counter_success++;
-
-
-            } //url does not directly refer to an image checkout provided url for images with headless Browser
-            else */
             if (!sUrl.equals("")) {
 
                 //try {
@@ -600,63 +570,63 @@ public class parser {
                     String src = element.absUrl("src");
 
                     // are not actual post with images but anouncements with examples
-                        if(src.contains("preview.redd")){
-                            continue;
-                        }
+                    if (src.contains("preview.redd")) {
+                        continue;
+                    }
 
-                        //check for img duplicates, since images on e.g. imgur are present multiple times with different endings
-                        if (imgDuplicate.equals(deleteEnding(src))) {
-                            continue;
+                    //check for img duplicates, since images on e.g. imgur are present multiple times with different endings
+                    if (imgDuplicate.equals(deleteEnding(src))) {
+                        continue;
+                    }
+                    imgDuplicate = deleteEnding(src);
+                    URL url;
+                    try {
+                        url = new URL(src);
+                    } catch (Exception e) {
+                        continue;
+                    }
+                    try {
+                        bimg = ImageIO.read(url);
+                    } catch (Exception e) {
+                        continue;
+                    }
+                    if (bimg == null) {
+                        continue;
+                    }
+                    byte[] imgByte = null;
+                    try {
+                        imgByte = getConnection(sUrl).execute().bodyAsBytes();
+                    } catch (Exception e) {
+                        continue;
+                    }
+                    src = trimUrl(src);
+                    String format = "";
+                    try {
+                        format = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(imgByte));
+                        if (format.startsWith("image/")) {
+                            format = format.substring(6);
                         }
-                        imgDuplicate = deleteEnding(src);
-                        URL url;
-                        try {
-                            url = new URL(src);
-                        } catch (Exception e) {
-                            continue;
-                        }
-                        try {
-                            bimg = ImageIO.read(url);
-                        } catch (Exception e) {
-                            continue;
-                        }
-                        if (bimg == null) {
-                            continue;
-                        }
-                        byte[] imgByte = null;
-                        try {
-                            imgByte = getConnection(sUrl).execute().bodyAsBytes();
-                        } catch (Exception e) {
-                            continue;
-                        }
-                        src = trimUrl(src);
-                        String format = "";
-                        try {
-                            format = URLConnection.guessContentTypeFromStream(new ByteArrayInputStream(imgByte));
-                            if (format.startsWith("image/")) {
-                                format = format.substring(6);
-                            }
-                        } catch (Exception e) {
-                            format = getFormat(src);
+                    } catch (Exception e) {
+                        format = getFormat(src);
 
-                        }
-                        // to avoid formats which can cause errors
-                        if (!format.equals("jpeg") && !format.equals("png") && !format.equals("jpg")) {
-                            format = "jpeg";
-                        }
+                    }
+                    // to avoid formats which can cause errors
+                    if (!format.equals("jpeg") && !format.equals("png") && !format.equals("jpg")) {
+                        format = "jpeg";
+                    }
 
-                        if (imgByte.length < 10000 || bimg.getHeight() < 300 || bimg.getWidth() < 300) { //check for min size of 10kB for and image
-                            counter_imgSize++;
-                            continue;
-                        }
-                        //trim img url remove everything after question mark
+                    if (imgByte.length < 10000 || bimg.getHeight() < 300 || bimg.getWidth() < 300) { //check for min size of 10kB for and image
+                        counter_imgSize++;
+                        continue;
+                    }
+                    //trim img url remove everything after question mark
 
 
-                        //create original_out which holds the content of the output file
-                        original_out po = new original_out(sub.getId(), src, format, sha256Hex(imgByte), String.valueOf(imgByte.length), sub.getScore(), sub.getAuthor(), linkBuilder, sub.getCreated_utc(), bimg.getWidth(), bimg.getHeight());
-                        outList.add(po);
-                        processedSubmission = true;
-                        counter_success++;
+                    //create original_out which holds the content of the output file
+                    original_out po = new original_out(sub.getId(), src, format, sha256Hex(imgByte), String.valueOf(imgByte.length), sub.getScore(), sub.getAuthor(), linkBuilder, sub.getCreated_utc(), bimg.getWidth(), bimg.getHeight());
+                    outList.add(po);
+                    processedSubmission = true;
+                    counter_success++;
 
                 }
 
@@ -667,6 +637,67 @@ public class parser {
                 statisticsAndDebug.add(sUrl);
             }
         }
+/*
+        SCORE-DISTRIBBUTION old and new for analytics only
+         */
+        // treemap to get ordrerd map
+        TreeMap<Integer, Integer> tm = new TreeMap<>(scoreDistribution);
+        File scoreDis = new File(deleteEnding(commentOrSubmission) + "_scoreDis");
+        BufferedWriter bf = null;
+
+        // write score distribution
+        try {
+            //create new BufferedWriter for the output file
+            bf = new BufferedWriter(new FileWriter(scoreDis));
+
+            //iterate map entries
+            for (Map.Entry<Integer, Integer> entry : tm.entrySet()) {
+                //put key and value separated by a colon
+                bf.write(entry.getKey() + ":" + entry.getValue());
+                bf.newLine();
+            }
+            bf.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                //always close the writer
+                bf.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        // treemap to get ordrerd map OLD-SCORES
+        TreeMap<Integer, Integer> tmOld = new TreeMap<>(scoreDistributionOld);
+        File scoreDisOLD = new File(deleteEnding(commentOrSubmission) + "_scoreDisOld");
+        BufferedWriter bfOld = null;
+
+        // write score distribution
+        try {
+            //create new BufferedWriter for the output file
+            bfOld = new BufferedWriter(new FileWriter(scoreDisOLD));
+
+            //iterate map entries
+            for (Map.Entry<Integer, Integer> entry : tmOld.entrySet()) {
+                //put key and value separated by a colon
+                bfOld.write(entry.getKey() + ":" + entry.getValue());
+                bfOld.newLine();
+            }
+            bfOld.flush();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                //always close the writer
+                bfOld.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+
         statisticsAndDebug.add("Number of empty url:  " + emptyURL);
         statisticsAndDebug.add(0, "Number of submissions successful parsed:  " + counter_success);
         statisticsAndDebug.add(1, "Number of submissions parsed:  " + counter_submisssions);

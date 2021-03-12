@@ -19,7 +19,7 @@ def checkExistence(url, checksum):
         m.update(img_data)
         hashImage = m.hexdigest()
     except:
-        print(" could not access utl")
+        print(" could not access url")
         check = False
         hashImage = "0"
 
@@ -122,8 +122,11 @@ if __name__ == '__main__':
 
         if "imgur" in row[1]:
             domain["imgur"] += 1
-        elif "redd.it" in row[1] or "reddituploads" in row[1]:
+        elif "redd.it" in row[1]:
             domain["redd.it"] += 1
+        elif "reddituploads" in row[1]:
+            domain["reddituploads.com"] += 1
+
         else:
             domain["other"] += 1
             continue
@@ -196,8 +199,11 @@ if __name__ == '__main__':
 
         if "imgur" in row[2]:
             domain["imgur"] += 1
-        elif "redd.it" in row[2] or "reddituploads" in row[2]:
+        elif "redd.it" in row[2]:
             domain["redd.it"] += 1
+        elif "reddituploads" in row[2]:
+            domain["reddituploads.com"] += 1
+
         else:
             domain["other"] += 1
             continue
@@ -298,9 +304,9 @@ if __name__ == '__main__':
 
         plotCounter=Counter(numberOfPhotoshops)
         sns.lineplot(y=plotCounter.values(),x=plotCounter.keys(), marker="o", color="black",mfc="red")
-        ax.set_xticks([0, 20, 40, 60,80,100,120,140])
+        ax.set_xticks([0, 20, 40, 60,80,100])
         ax.set_yscale("log")
-        ax.set_xticklabels([0, 20, 40, 60,80,100,120,140])
+        ax.set_xticklabels([0, 20, 40, 60,80,100])
         ax.set_yticks([1, 5, 10, 50, 100, 500, 1000])
         ax.set_yticklabels([1, 5, 10, 50, 100, 500, 1000])
 
@@ -321,10 +327,11 @@ if __name__ == '__main__':
 
     if sys.argv[2] == "domain":
 
+        print("domain ", domain)
         sns.set_style('darkgrid')
         fig, ax = plt.subplots()
-        keys=["imgur.com", "redd.it"]
-        values=[domain["imgur"],domain["redd.it"]]
+        keys=["imgur.com", "redd.it","reddituploads.com"]
+        values=[domain["imgur"],domain["redd.it"],domain["reddituploads.com"]]
         sns.barplot(x=keys,y=values,ax=ax,palette="mako")
         ax.set_yscale("log")
         ax.set_yticks([1,10,100,1000,10000,1000000])
